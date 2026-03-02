@@ -16,7 +16,7 @@
     "@livekit/agents-plugin-elevenlabs": "^1.0.0",
     "@livekit/agents-plugin-livekit": "^1.0.0",
     "@livekit/agents-plugin-silero": "^1.0.0",
-    "@livekit/noise-cancellation-node": "^1.0.0",
+    "@livekit/noise-cancellation-node": "^0.1.9",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "body-parser": "^1.20.3",

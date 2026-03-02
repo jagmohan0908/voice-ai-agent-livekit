@@ -14,7 +14,7 @@ import * as livekit from '@livekit/agents-plugin-livekit';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as elevenlabs from '@livekit/agents-plugin-elevenlabs';
 import * as silero from '@livekit/agents-plugin-silero';
-import { BackgroundVoiceCancellationTelephony } from '@livekit/noise-cancellation-node';
+import { TelephonyBackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
 
 // HTTP server + Twilio webhook validation
 import express from 'express';
@@ -351,7 +351,8 @@ const AppAgent = defineAgent({
       room: ctx.room,
       inputOptions: {
         // LiveKit noise cancellation tuned for telephony audio.
-        noiseCancellation: BackgroundVoiceCancellationTelephony(),
+        // TelephonyBackgroundVoiceCancellation() is optimized for phone-quality audio.
+        noiseCancellation: TelephonyBackgroundVoiceCancellation(),
       },
     });
 
