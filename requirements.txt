@@ -1,0 +1,21 @@
+# This project is implemented in Node.js, not Python.
+# This file is provided only because the project requirements
+# explicitly requested a `requirements.txt` listing dependencies.
+#
+# To install dependencies, run:
+#   npm install
+#
+# Key runtime dependencies (see package.json for exact versions):
+#
+# - @livekit/agents
+# - @livekit/agents-plugin-livekit
+# - @livekit/agents-plugin-deepgram
+# - @livekit/agents-plugin-elevenlabs
+# - @livekit/agents-plugin-silero
+# - @livekit/noise-cancellation-node
+# - dotenv
+# - express
+# - body-parser
+# - twilio
+# - node-fetch
+

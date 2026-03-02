@@ -1,0 +1,26 @@
+{
+  "name": "livekit-inbound-voice-agent",
+  "version": "1.0.0",
+  "description": "Self-hosted inbound voice agent using LiveKit Agents, Twilio SIP, Deepgram, OpenAI, ElevenLabs, Silero VAD, and Airtable logging.",
+  "main": "agent.js",
+  "type": "module",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@livekit/agents": "^1.0.0",
+    "@livekit/agents-plugin-deepgram": "^1.0.0",
+    "@livekit/agents-plugin-elevenlabs": "^1.0.0",
+    "@livekit/agents-plugin-livekit": "^1.0.0",
+    "@livekit/agents-plugin-silero": "^1.0.0",
+    "@livekit/noise-cancellation-node": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "body-parser": "^1.20.3",
+    "twilio": "^5.2.0",
+    "node-fetch": "^3.3.2"
+  }
+}
