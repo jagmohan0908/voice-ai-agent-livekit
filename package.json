@@ -5,7 +5,8 @@
   "main": "agent.js",
   "type": "module",
   "scripts": {
-    "start": "node agent.js start"
+    "start": "node agent.js start",
+    "download-files": "node agent.js download-files"
   },
   "engines": {
     "node": ">=20.0.0"
