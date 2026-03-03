@@ -5,6 +5,7 @@
   "main": "agent.js",
   "type": "module",
   "scripts": {
+    "prestart": "node agent.js download-files",
     "start": "node agent.js start",
     "download-files": "node agent.js download-files"
   },
