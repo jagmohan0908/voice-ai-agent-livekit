@@ -51,7 +51,9 @@ const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE_NAME || 'call_logs';
 const MAX_CALL_DURATION_SECONDS = Number(process.env.MAX_CALL_DURATION_SECONDS || '900'); // default 15min
 
 const PUBLIC_BASE_URL = envRequired('PUBLIC_BASE_URL');
-const TWILIO_WEBHOOK_PORT = Number(process.env.TWILIO_WEBHOOK_PORT || '3000');
+// On platforms like Render, the HTTP service port is provided via PORT.
+// Fall back to TWILIO_WEBHOOK_PORT (for local dev) and then 3000.
+const TWILIO_WEBHOOK_PORT = Number(process.env.PORT || process.env.TWILIO_WEBHOOK_PORT || '3000');
 const TWILIO_AUTH_TOKEN = envRequired('TWILIO_AUTH_TOKEN');
 const LIVEKIT_SIP_URI = envRequired('LIVEKIT_SIP_URI');
 
