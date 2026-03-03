@@ -165,7 +165,7 @@ const AppAgent = defineAgent({
       stt,
       llm,
       tts,
-      turnDetection: new livekit.turnDetector.MultilingualModel(),
+      // Omit turn detector to avoid requiring on-device model downloads.
       vad,
       voiceOptions: {
         allowInterruptions: true,
