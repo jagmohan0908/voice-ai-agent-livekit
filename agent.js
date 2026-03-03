@@ -446,9 +446,10 @@ startTwilioWebhookServer();
 // Start the LiveKit Agents worker that will handle SIP/LiveKit calls.
 cli.runApp(
   new ServerOptions({
-    agent: fileURLToPath(import.meta.url),
+    // LiveKit expects this agent module to `export default` the Agent definition.
+    agent: fileURLToPath(new URL('./worker.js', import.meta.url)),
     agentName: LIVEKIT_AGENT_NAME,
-    livekitUrl: LIVEKIT_URL,
+    wsURL: LIVEKIT_URL,
     apiKey: LIVEKIT_API_KEY,
     apiSecret: LIVEKIT_API_SECRET,
   }),
