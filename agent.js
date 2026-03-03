@@ -244,7 +244,6 @@ const AppAgent = defineAgent({
       stt,
       llm,
       tts,
-      turnDetection: new livekit.turnDetector.MultilingualModel(),
       vad,
       voiceOptions: {
         // Barge-in / interruption handling:
