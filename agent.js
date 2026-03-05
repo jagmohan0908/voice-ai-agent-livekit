@@ -477,7 +477,15 @@ function startTwilioWebhookServer() {
         error: 'Missing query parameter: to (e.g. ?to=+919876543210)',
       });
     }
-    const phoneNumber = to.trim();
+    // Many SIP trunks (e.g. Twilio) expect E.164 digits only, no + or spaces
+    const raw = to.trim();
+    const phoneNumber = raw.replace(/\D/g, '');
+    if (!phoneNumber.length) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid number: must contain digits (e.g. 919873090386 or +919873090386)',
+      });
+    }
     if (!SIP_OUTBOUND_TRUNK_ID || !String(SIP_OUTBOUND_TRUNK_ID).startsWith('ST_')) {
       return res.status(503).json({
         ok: false,
