@@ -26,6 +26,7 @@ Everything runs in a single entry file: `agent.js`.
 - **`.env.example`**: Template for all required environment variables (no secrets included).
 - **`.gitignore`**: Ensures `.env` and other local artifacts are not committed.
 - **`package.json`**: Node.js dependency management and start script.
+- **`sip-participant.json`**: Optional default config for LiveKit SIP outbound test (`/outbound-test-sip`): trunk ID, room name, participant identity/name, etc.
 - **`requirements.txt`**: Text list of dependencies (for reference only; use `npm install`).
 - **`README.md`**: You are here.
 
@@ -104,6 +105,60 @@ Copy `.env.example` to `.env` and fill in the values.
   - Example: `sip:ingress-id@sip.livekit.cloud`
   - You will get this when you create a SIP Ingress in LiveKit Cloud.
   - Twilio will be instructed via TwiML to connect the incoming call to this SIP URI.
+
+- **`TWILIO_ACCOUNT_SID`** (optional, for outbound test)
+  - Your Twilio **Account SID**. Get from Twilio Console → Account Info.
+  - Required only if you use the **outbound test** (see below).
+
+- **`TWILIO_PHONE_NUMBER`** (optional, for outbound test)
+  - Your Twilio phone number in E.164 format (e.g. `+15551234567`).
+  - Required only if you use the **outbound test** (see below).
+
+---
+
+### Testing with an outbound call
+
+You can test the agent by having the **server place a call to your phone** (outbound test):
+
+1. Set **`TWILIO_ACCOUNT_SID`** and **`TWILIO_PHONE_NUMBER`** in your `.env` (or Render Environment).
+2. Deploy and ensure the service is running.
+3. Open in a browser or call with `curl`:
+   ```
+   https://YOUR_RENDER_URL/outbound-test?to=+919876543210
+   ```
+   Replace `+919876543210` with your phone number (E.164 format).
+4. Your phone will ring. When you **answer**, you are connected to the same LiveKit agent (greeting + voice AI).
+5. Check Render logs for `[twilio] Outbound test call to ...` and `[agent] New call / room: ...`.
+
+If you get `503` and "Outbound test disabled", add `TWILIO_ACCOUNT_SID` and `TWILIO_PHONE_NUMBER` to your environment.
+
+---
+
+### Testing with LiveKit SIP outbound (sip-participant.json)
+
+You can also place an **outbound call via LiveKit’s SIP** (no Twilio for the call itself). The server dispatches your agent to a room and uses a LiveKit **Outbound Trunk** to dial the number; when the person answers, they join the same room as the agent.
+
+1. **LiveKit Cloud**: Create an **Outbound Trunk** (SIP → Outbound Trunk) and note the trunk ID (e.g. `ST_xxxxxxxxxxxx`).
+2. **Config**: Either set `SIP_OUTBOUND_TRUNK_ID` in `.env`, or put the trunk ID and options in **`sip-participant.json`** in the project root:
+   ```json
+   {
+     "sip_trunk_id": "ST_xxxxxxxxxxxx",
+     "sip_call_to": "+919873090386",
+     "room_name": "outbound-test-room",
+     "participant_identity": "sip-outbound",
+     "participant_name": "Test Caller",
+     "wait_until_answered": true
+   }
+   ```
+   The `sip_call_to` in the file is the default; the **`to`** query param overrides it when you call the endpoint.
+3. **Trigger the call**:
+   ```
+   https://YOUR_RENDER_URL/outbound-test-sip?to=+919876543210
+   ```
+   Optional: `?room_name=my-room` to use a specific room name (otherwise the default from the JSON or an auto-generated name is used).
+4. Your phone rings; when you **answer**, you are in the same LiveKit room as the voice agent.
+
+If you get `503` and "SIP outbound not configured", set `SIP_OUTBOUND_TRUNK_ID` or ensure `sip_trunk_id` is present in `sip-participant.json`.
 
 ---
 

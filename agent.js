@@ -26,6 +26,11 @@ import fetch from 'node-fetch';
 
 // Node utilities
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+// LiveKit Server SDK for SIP outbound (create room + dial out)
+import { SipClient, AgentDispatchClient } from 'livekit-server-sdk';
 
 // ------------------------------
 // Configuration helpers
@@ -56,6 +61,28 @@ const PUBLIC_BASE_URL = envRequired('PUBLIC_BASE_URL');
 const TWILIO_WEBHOOK_PORT = Number(process.env.PORT || process.env.TWILIO_WEBHOOK_PORT || '3000');
 const TWILIO_AUTH_TOKEN = envRequired('TWILIO_AUTH_TOKEN');
 const LIVEKIT_SIP_URI = envRequired('LIVEKIT_SIP_URI');
+
+// Optional: for outbound test calls (server triggers Twilio to call a number)
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+
+// LiveKit API base URL (SipClient/AgentDispatch need https, not wss)
+function getLiveKitApiUrl() {
+  const url = (LIVEKIT_URL || '').trim();
+  if (url.startsWith('wss://')) return url.replace(/^wss:\/\//, 'https://');
+  if (url.startsWith('ws://')) return url.replace(/^ws:\/\//, 'http://');
+  return url;
+}
+
+// Default SIP outbound config from sip-participant.json (optional)
+let sipParticipantDefaults = {};
+try {
+  const path = join(dirname(fileURLToPath(import.meta.url)), 'sip-participant.json');
+  sipParticipantDefaults = JSON.parse(readFileSync(path, 'utf8'));
+} catch {
+  // File missing or invalid; use env only
+}
+const SIP_OUTBOUND_TRUNK_ID = process.env.SIP_OUTBOUND_TRUNK_ID || sipParticipantDefaults.sip_trunk_id;
 
 // ------------------------------
 // Simple Agent definition
@@ -385,6 +412,122 @@ function startTwilioWebhookServer() {
       extended: false,
     }),
   );
+
+  /**
+   * Outbound test: TwiML returned when the callee answers.
+   * Used when we trigger a call via Twilio REST; Twilio requests this URL for TwiML.
+   */
+  app.get('/twilio/voice-outbound', (req, res) => {
+    const response = new twilio.twiml.VoiceResponse();
+    const dial = response.dial();
+    dial.sip(LIVEKIT_SIP_URI);
+    res.type('text/xml');
+    res.send(response.toString());
+  });
+
+  /**
+   * Trigger an outbound test call: your server asks Twilio to call the given number.
+   * When the person answers, they are connected to the same LiveKit agent.
+   * Requires: TWILIO_ACCOUNT_SID, TWILIO_PHONE_NUMBER in .env.
+   * Usage: GET /outbound-test?to=+919876543210
+   */
+  app.get('/outbound-test', async (req, res) => {
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_PHONE_NUMBER) {
+      return res.status(503).json({
+        ok: false,
+        error: 'Outbound test disabled: set TWILIO_ACCOUNT_SID and TWILIO_PHONE_NUMBER in env.',
+      });
+    }
+    const to = req.query.to;
+    if (!to || typeof to !== 'string') {
+      return res.status(400).json({
+        ok: false,
+        error: 'Missing query parameter: to (e.g. ?to=+919876543210)',
+      });
+    }
+    try {
+      const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+      const twimlUrl = `${PUBLIC_BASE_URL.replace(/\/$/, '')}/twilio/voice-outbound`;
+      const call = await client.calls.create({
+        to: to.trim(),
+        from: TWILIO_PHONE_NUMBER,
+        url: twimlUrl,
+      });
+      console.log(`[twilio] Outbound test call to ${to} (Sid=${call.sid})`);
+      res.json({ ok: true, callSid: call.sid, to, message: 'Call initiated. Answer the phone to talk to the agent.' });
+    } catch (err) {
+      console.error('[twilio] Outbound test failed:', err);
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+  /**
+   * Outbound test via LiveKit SIP (sip-participant.json method).
+   * 1. Dispatches the voice agent to a room.
+   * 2. Creates a SIP participant that dials the given number (LiveKit outbound trunk).
+   * When the person answers, they join the same room as the agent.
+   * Requires: LiveKit Outbound Trunk configured; SIP_OUTBOUND_TRUNK_ID or sip_trunk_id in sip-participant.json.
+   * Usage: GET /outbound-test-sip?to=+919876543210
+   */
+  app.get('/outbound-test-sip', async (req, res) => {
+    const to = req.query.to;
+    if (!to || typeof to !== 'string') {
+      return res.status(400).json({
+        ok: false,
+        error: 'Missing query parameter: to (e.g. ?to=+919876543210)',
+      });
+    }
+    const phoneNumber = to.trim();
+    if (!SIP_OUTBOUND_TRUNK_ID || !String(SIP_OUTBOUND_TRUNK_ID).startsWith('ST_')) {
+      return res.status(503).json({
+        ok: false,
+        error:
+          'SIP outbound not configured: set SIP_OUTBOUND_TRUNK_ID in env or sip_trunk_id in sip-participant.json (LiveKit Outbound Trunk ID, e.g. ST_xxx).',
+      });
+    }
+    const roomName = req.query.room_name?.trim() || sipParticipantDefaults.room_name || `outbound-${Date.now()}`;
+    const apiUrl = getLiveKitApiUrl();
+    try {
+      const dispatchClient = new AgentDispatchClient(apiUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+      const sipClient = new SipClient(apiUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+
+      const dispatch = await dispatchClient.createDispatch(roomName, LIVEKIT_AGENT_NAME, {
+        metadata: phoneNumber,
+      });
+      console.log(`[sip-outbound] Agent dispatch created for room ${roomName} (dispatchId=${dispatch.id})`);
+
+      const sipOpts = {
+        participantIdentity: sipParticipantDefaults.participant_identity || 'sip-outbound',
+        participantName: sipParticipantDefaults.participant_name || 'Test Caller',
+        waitUntilAnswered: sipParticipantDefaults.wait_until_answered !== false,
+      };
+      const participant = await sipClient.createSipParticipant(
+        SIP_OUTBOUND_TRUNK_ID,
+        phoneNumber,
+        roomName,
+        sipOpts,
+      );
+      console.log(`[sip-outbound] SIP participant created, calling ${phoneNumber} (room=${roomName})`);
+
+      res.json({
+        ok: true,
+        roomName,
+        dispatchId: dispatch.id,
+        sipParticipant: participant.sipParticipantId,
+        to: phoneNumber,
+        message: 'Call initiated via LiveKit SIP. Answer the phone to talk to the agent.',
+      });
+    } catch (err) {
+      console.error('[sip-outbound] Error:', err);
+      const msg = err.message || String(err);
+      const code = err.metadata?.['sip_status_code'] || err.code;
+      res.status(500).json({
+        ok: false,
+        error: msg,
+        sipStatusCode: code,
+      });
+    }
+  });
 
   /**
    * Inbound voice webhook.
