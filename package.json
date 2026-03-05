@@ -2,9 +2,11 @@
   "name": "livekit-voice-agent",
   "version": "1.0.0",
   "description": "Twilio number → LiveKit SIP → OpenAI agent with ElevenLabs voice.",
+  "license": "MIT",
   "main": "agent.js",
   "type": "module",
   "scripts": {
+    "download-files": "node -e \"process.exit(0)\"",
     "start": "node agent.js"
   },
   "engines": {
