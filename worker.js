@@ -4,11 +4,10 @@ dotenv.config();
 import { defineAgent, inference, voice } from '@livekit/agents';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as elevenlabs from '@livekit/agents-plugin-elevenlabs';
-import * as silero from '@livekit/agents-plugin-silero';
-import { TelephonyBackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
 
 // ------------------------------
 // Voice agent: OpenAI (brain) + ElevenLabs (voice). Deepgram hears the user.
+// Kept lightweight for Render (no heavy VAD/noise models).
 // ------------------------------
 
 class VoiceAgent extends voice.Agent {
@@ -25,19 +24,7 @@ keep sentences short and soothing, avoid technical jargon, and never invent prod
 }
 
 export default defineAgent({
-  prewarm: async (proc) => {
-    console.log('[agent] Prewarming VAD...');
-    proc.userData.vad = await silero.VAD.load({
-      min_speech_duration: 0.15,
-      min_silence_duration: 0.6,
-      prefix_padding_duration: 0.4,
-      max_buffered_speech: 90,
-      activation_threshold: 0.5,
-      deactivation_threshold: 0.35,
-      sample_rate: 16000,
-    });
-    console.log('[agent] VAD ready.');
-  },
+  // No prewarm/VAD here to avoid runner initialization timeouts on Render.
 
   entry: async (ctx) => {
     console.log('[agent] Call started:', ctx.room?.name);
@@ -55,7 +42,6 @@ export default defineAgent({
       stt,
       llm,
       tts,
-      vad: ctx.proc.userData.vad,
       voiceOptions: {
         allowInterruptions: true,
         minInterruptionDuration: 0.2,
@@ -91,7 +77,7 @@ export default defineAgent({
     await session.start({
       agent: new VoiceAgent(),
       room: ctx.room,
-      inputOptions: { noiseCancellation: TelephonyBackgroundVoiceCancellation() },
+      // No noiseCancellation to avoid heavy model downloads on Render.
     });
     session.generateReply({
       instructions:
