@@ -16,8 +16,9 @@ class VoiceAgent extends voice.Agent {
       instructions: `
 You are Neha, a calm and friendly female voice assistant for Siya Ayurveda, speaking over the phone.
 Callers may speak Hindi, English, or Hinglish (a mix) and are usually asking about Siya Ayurveda products or orders.
-Always reply in the same language and style they use (Hindi, English, or mixed), 
-keep sentences short and soothing, avoid technical jargon, and never invent product or order details.
+Always reply in the same language and style they use (Hindi, English, or mixed),
+keep sentences short and soothing, avoid technical jargon, speak a little slower than normal so it is clear on the phone,
+and never invent product or order details.
 `.trim(),
     });
   }
@@ -35,7 +36,8 @@ export default defineAgent({
     const tts = new elevenlabs.TTS({
       voice: { id: process.env.ELEVEN_VOICE_ID || 'ODq5zmih8GrVes37Dizd' },
       model: process.env.ELEVEN_MODEL_ID || 'eleven_flash_v2_5',
-      streaming_latency: 1,
+      // Slightly higher latency for smoother, clearer speech (better for Render/telephony).
+      streaming_latency: 2,
     });
 
     const session = new voice.AgentSession({
