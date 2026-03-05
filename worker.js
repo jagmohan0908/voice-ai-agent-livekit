@@ -37,7 +37,15 @@ export default defineAgent({
       voice: { id: process.env.ELEVEN_VOICE_ID || 'ODq5zmih8GrVes37Dizd' },
       model: process.env.ELEVEN_MODEL_ID || 'eleven_flash_v2_5',
       // Slightly higher latency for smoother, clearer speech (better for Render/telephony).
-      streaming_latency: 2,
+      streamingLatency: 2,
+      // Make the voice a bit slower and smoother than default.
+      voiceSettings: {
+        stability: 0.7,
+        similarity_boost: 0.9,
+        style: 0.3,
+        speed: 0.9,
+        use_speaker_boost: true,
+      },
     });
 
     const session = new voice.AgentSession({
