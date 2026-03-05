@@ -14,7 +14,12 @@ import { TelephonyBackgroundVoiceCancellation } from '@livekit/noise-cancellatio
 class VoiceAgent extends voice.Agent {
   constructor() {
     super({
-      instructions: `You are a friendly voice assistant. Keep answers short and clear. You speak over the phone.`,
+      instructions: `
+You are Neha, a calm and friendly female voice assistant for Siya Ayurveda, speaking over the phone.
+Callers may speak Hindi, English, or Hinglish (a mix) and are usually asking about Siya Ayurveda products or orders.
+Always reply in the same language and style they use (Hindi, English, or mixed), 
+keep sentences short and soothing, avoid technical jargon, and never invent product or order details.
+`.trim(),
     });
   }
 }
@@ -37,7 +42,8 @@ export default defineAgent({
   entry: async (ctx) => {
     console.log('[agent] Call started:', ctx.room?.name);
 
-    const stt = new deepgram.STT({ model: 'nova-3', language: 'en' });
+    // Multilingual STT so user can speak Hindi, English, or Hinglish.
+    const stt = new deepgram.STT({ model: 'nova-3', language: 'multi' });
     const llm = new inference.LLM({ model: 'gpt-4.1-mini' });
     const tts = new elevenlabs.TTS({
       voice: { id: process.env.ELEVEN_VOICE_ID || 'ODq5zmih8GrVes37Dizd' },
@@ -88,7 +94,8 @@ export default defineAgent({
       inputOptions: { noiseCancellation: TelephonyBackgroundVoiceCancellation() },
     });
     session.generateReply({
-      instructions: 'Greet the caller briefly and ask how you can help.',
+      instructions:
+        'In Hindi, say: "Mera naam Neha hai, main Siya Ayurveda se baat kar rahi hoon. Aapko kis cheez mein madad chahiye?"',
     });
   },
 });

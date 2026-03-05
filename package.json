@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "download-files": "node -e \"process.exit(0)\"",
-    "start": "node agent.js"
+    "start": "node agent.js start"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -19,9 +19,10 @@
     "@livekit/agents-plugin-livekit": "^1.0.0",
     "@livekit/agents-plugin-silero": "^1.0.0",
     "@livekit/noise-cancellation-node": "^0.1.9",
+    "body-parser": "^1.20.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "body-parser": "^1.20.3",
-    "twilio": "^5.2.0"
+    "twilio": "^5.2.0",
+    "zod": "^3.23.8"
   }
 }

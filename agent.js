@@ -71,13 +71,8 @@ app.get('/call', async (req, res) => {
   }
 });
 
-// Inbound: when someone calls your Twilio number. Same TwiML: connect to LiveKit.
-app.post('/twilio/voice', (req, res) => {
-  const sig = req.headers['x-twilio-signature'];
-  const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-  if (!twilio.validateRequest(TWILIO_AUTH_TOKEN, sig, url, req.body)) {
-    return res.status(403).send('Invalid signature');
-  }
+// Inbound (optional) and Twilio webhook for outbound: same TwiML, no signature validation (simpler for dev/ngrok).
+app.all('/twilio/voice', (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
   twiml.dial().sip(LIVEKIT_SIP_URI);
   res.type('text/xml').send(twiml.toString());
